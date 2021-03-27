@@ -19,6 +19,7 @@ class Pdo extends Middleware
 {
     public $engine = 'mysql';
     public $pdo    = null;
+    public $pdo_read = null;
     public $sql    = '';
 
     /**
@@ -35,10 +36,20 @@ class Pdo extends Middleware
         if (is_resource($setting)) {
             $this->pdo = $setting;
         } else if (is_array($setting)) {
-            $username = $username ?: ($setting['username'] ?? '');
-            $password = $password ?: ($setting['password'] ?? '');
+            if (isset($setting['mysql_read'])) {
+                $readSetting = $setting['mysql_read'];
+                $writeSetting = $setting['mysql'];
+            } else {
+                $readSetting = $setting;
+                $writeSetting = $setting;
+            }
             try {
-                $this->pdo = new \Pdo($this->getDsn($setting), $username, $password);
+                $this->pdo = new \Pdo($this->getDsn($writeSetting),
+                    $writeSetting['username'] ?? '',
+                    $writeSetting['password'] ?? '');
+                $this->pdo_read = new \Pdo($this->getDsn($readSetting),
+                    $readSetting['username'] ?? '',
+                    $readSetting['password'] ?? '');
             } catch (\PDOException $e) {
                 echo '无法连接到数据库';
                 exit;
@@ -52,6 +63,7 @@ class Pdo extends Middleware
             }
         }
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $this->pdo_read->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
     }
 
     /**
@@ -95,7 +107,11 @@ class Pdo extends Middleware
     public function query($sql, $arr = [])
     {
         $this->sql = $sql;
-        $this->sth = $this->pdo->prepare($sql);
+        if (stristr($sql, 'select') !== false){
+            $this->sth = $this->pdo_read->prepare($sql);
+        } else {
+            $this->sth = $this->pdo->prepare($sql);
+        }
         try {
             $this->sth->execute($arr);
         } catch (\PDOException $e) {
@@ -181,6 +197,7 @@ class Pdo extends Middleware
     public function call()
     {
         $this->vitex->pdo = $this;
+        $this->vitex->pdo_read = $this;
         $this->runNext();
     }
 

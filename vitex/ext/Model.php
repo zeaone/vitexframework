@@ -95,6 +95,10 @@ class Model
      */
     protected $pdo;
     /**
+     * @var
+     */
+    protected $pdo_read;
+    /**
      * @var \vitex\ext\Pdo
      */
     protected $DB;
@@ -1112,7 +1116,7 @@ class Model
                         if (is_array($val)) {
                             $val = array_map(function ($v) {
                                 if (is_numeric($v) && $v < 65535) {
-                                    return $v;
+                                    return "'" . $v . "'";
                                 } else {
                                     return "'" . $v . "'";
                                 }
@@ -1845,6 +1849,14 @@ class Model
         ];
     }
 
+    private function selfFetchAll()
+    {
+
+    }
+    private function selfFetch()
+    {
+
+    }
     public function __destruct()
     {
         $this->DB = null;
